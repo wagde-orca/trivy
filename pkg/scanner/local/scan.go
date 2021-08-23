@@ -182,14 +182,15 @@ func (s Scanner) scanLibrary(apps []ftypes.Application, options types.ScanOption
 			printedTypes[app.Type] = struct{}{}
 		}
 
-		log.Logger.Debugf("Detecting library vulnerabilities, type: %s, path: %s", app.Type, app.FilePath)
+		currDir, err := os.Getwd()
+		filepathAbs, _ := filepath.Abs(fmt.Sprintf("/%s", app.FilePath))
+		log.Logger.Debugf("Detecting library vulnerabilities, type: %s, path: %s, abs: %s, curr dir: %s", app.Type, app.FilePath, filepathAbs, currDir)
 		vulns, err := library.Detect(app.Type, app.Libraries)
 		if err != nil {
 			return nil, xerrors.Errorf("failed vulnerability detection of libraries: %w", err)
 		}
-
 		libReport := report.Result{
-			Target:          app.FilePath,
+			Target:          filepathAbs,
 			Vulnerabilities: vulns,
 			Type:            app.Type,
 		}
