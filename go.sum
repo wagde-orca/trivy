@@ -1230,6 +1230,10 @@ github.com/vmihailenco/msgpack v3.3.3+incompatible/go.mod h1:fy3FlTQTDXWkZ7Bh6Ac
 github.com/vmihailenco/msgpack/v4 v4.3.12/go.mod h1:gborTTJjAo/GWTqqRjrLCn9pgNN+NXzzngzBKDPIqw4=
 github.com/vmihailenco/tagparser v0.1.1/go.mod h1:OeAg3pn3UbLjkWt+rN9oFYB6u/cQgqMEUPoW2WPyhdI=
 github.com/vmware/govmomi v0.20.3/go.mod h1:URlwyTFZX72RmxtxuaFL2Uj3fD1JTvZdx59bHWk6aFU=
+github.com/wagde-orca/fanal v0.0.0-20210823153717-adcbaa728173 h1:dmMEX6daD+g0pppiOy4X9jO4+botcCAM26a5/GXODls=
+github.com/wagde-orca/fanal v0.0.0-20210823153717-adcbaa728173/go.mod h1:s4rJj8D45R28N3PNz5+hpjSHzD3YhaIbYrQtuYciGdY=
+github.com/wagde-orca/go-dep-parser v0.0.0-20210823154049-f280d76feffd h1:MwzJuU4aayAtg7SO/c/Vsfekn73iNK3qGpXDahicFfE=
+github.com/wagde-orca/go-dep-parser v0.0.0-20210823154049-f280d76feffd/go.mod h1:Cv/FOCXy6gwvDbz/KX48+y//SmbnKroFwW5hquXn5G4=
 github.com/wasmerio/go-ext-wasm v0.3.1 h1:G95XP3fE2FszQSwIU+fHPBYzD0Csmd2ef33snQXNA5Q=
 github.com/wasmerio/go-ext-wasm v0.3.1/go.mod h1:VGyarTzasuS7k5KhSIGpM3tciSZlkP31Mp9VJTHMMeI=
 github.com/willf/bitset v1.1.10/go.mod h1:RjeCKbqT1RxIR/KWY6phxZiaY1IyutSBfGjNPySAYV4=

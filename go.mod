@@ -58,3 +58,7 @@ require (
 	k8s.io/kubernetes v1.13.5 // indirect
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 )
+
+replace github.com/aquasecurity/fanal => github.com/wagde-orca/fanal v0.0.0-20210823153717-adcbaa728173
+
+replace github.com/aquasecurity/go-dep-parser => github.com/wagde-orca/go-dep-parser v0.0.0-20210823154049-f280d76feffd
