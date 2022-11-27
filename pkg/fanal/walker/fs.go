@@ -26,6 +26,15 @@ func (w FS) Walk(root string, fn WalkFunc) error {
 	// walk function called for every path found
 	walkFn := func(pathname string, fi os.FileInfo) error {
 		pathname = filepath.Clean(pathname)
+		if fi.Mode()&os.ModeSymlink != 0 {
+			pathname, _ = os.Readlink(pathname)
+			pathname, _ = filepath.Abs(pathname)
+			file_fi, err := os.Lstat(pathname)
+			if err != nil {
+				return nil
+			}
+			fi = file_fi
+		}
 
 		if fi.IsDir() {
 			if w.shouldSkipDir(pathname) {
