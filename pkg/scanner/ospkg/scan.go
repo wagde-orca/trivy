@@ -48,7 +48,10 @@ func (s *scanner) Scan(ctx context.Context, target types.ScanTarget, _ types.Sca
 
 	if target.OS.Extended {
 		// TODO: move the logic to each detector
-		target.OS.Name += "-ESM"
+		if target.OS.Name != "18.04" {
+			// XXX: Remove this once trivy DB has 18.04-ESM entries
+			target.OS.Name += "-ESM"
+		}
 	}
 
 	vulns, eosl, err := ospkgDetector.Detect(ctx, "", target.OS.Family, target.OS.Name, target.Repository, time.Time{},

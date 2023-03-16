@@ -127,6 +127,7 @@ func toApplication(fileType types.LangType, filePath, libFilePath string, r xio.
 			DependsOn: deps[lib.ID],
 			Locations: locs,
 			Digest:    d,
+			SrcName:   lib.FileName,
 		}
 		pkgs = append(pkgs, newPkg)
 	}

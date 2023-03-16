@@ -17,11 +17,12 @@ type Properties struct {
 	FilePath   string // path to file containing these props
 }
 
-func (p Properties) Library() types.Library {
+func (p Properties) Library(fileName string) types.Library {
 	return types.Library{
 		Name:     fmt.Sprintf("%s:%s", p.GroupID, p.ArtifactID),
 		Version:  p.Version,
 		FilePath: p.FilePath,
+		FileName: fileName, // if this is the same as FilePath remove it
 	}
 }
 

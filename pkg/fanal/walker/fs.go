@@ -46,6 +46,20 @@ func (w FS) Walk(root string, fn WalkFunc) error {
 	walkFn := func(pathname string, fi os.FileInfo) error {
 		pathname = filepath.Clean(pathname)
 
+		//if fi.Mode()&os.ModeSymlink != 0 {
+		//	fmt.Printf("The pathname 0 is %s.\n", pathname)
+		//	pathname, _ = os.Readlink(pathname)
+		//	fmt.Printf("The pathname 1 is %s.\n", pathname)
+		//	pathname, _ = filepath.Abs(pathname)
+		//	fmt.Printf("The pathname 2 is %s.\n", pathname)
+		//	file_fi, err := os.Lstat(pathname)
+		//	fmt.Printf("The file_fi is %v.\n", file_fi)
+		//	if err != nil {
+		//		return nil
+		//	}
+		//	fi = file_fi
+		//}
+
 		// For exported rootfs (e.g. images/alpine/etc/alpine-release)
 		relPath, err := filepath.Rel(root, pathname)
 		if err != nil {

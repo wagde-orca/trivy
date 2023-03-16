@@ -74,14 +74,14 @@ func NewParser(c Client, opts ...Option) types.Parser {
 }
 
 func (p *Parser) Parse(r xio.ReadSeekerAt) ([]types.Library, []types.Dependency, error) {
-	libs, deps, err := p.parseArtifact(p.rootFilePath, p.size, r)
+	libs, deps, err := p.parseArtifact(p.rootFilePath, filepath.Base(p.rootFilePath), p.size, r)
 	if err != nil {
 		return nil, nil, xerrors.Errorf("unable to parse %s: %w", p.rootFilePath, err)
 	}
 	return removeLibraryDuplicates(libs), deps, nil
 }
 
-func (p *Parser) parseArtifact(filePath string, size int64, r xio.ReadSeekerAt) ([]types.Library, []types.Dependency, error) {
+func (p *Parser) parseArtifact(filePath string, origFileName string, size int64, r xio.ReadSeekerAt) ([]types.Library, []types.Dependency, error) {
 	log.Logger.Debugw("Parsing Java artifacts...", zap.String("file", filePath))
 
 	// Try to extract artifactId and version from the file name
@@ -89,7 +89,7 @@ func (p *Parser) parseArtifact(filePath string, size int64, r xio.ReadSeekerAt) 
 	fileName := filepath.Base(filePath)
 	fileProps := parseFileName(filePath)
 
-	libs, m, foundPomProps, err := p.traverseZip(filePath, size, r, fileProps)
+	libs, m, foundPomProps, err := p.traverseZip(filePath, fileName, origFileName, size, r, fileProps)
 	if err != nil {
 		return nil, nil, xerrors.Errorf("zip error: %w", err)
 	}
@@ -106,7 +106,7 @@ func (p *Parser) parseArtifact(filePath string, size int64, r xio.ReadSeekerAt) 
 			log.Logger.Debugw("Unable to identify POM in offline mode", zap.String("file", fileName))
 			return libs, nil, nil
 		}
-		return append(libs, manifestProps.Library()), nil, nil
+		return append(libs, manifestProps.Library(fileName)), nil, nil
 	}
 
 	if manifestProps.Valid() {
@@ -114,14 +114,26 @@ func (p *Parser) parseArtifact(filePath string, size int64, r xio.ReadSeekerAt) 
 		// We have to make sure that the artifact exists actually.
 		if ok, _ := p.client.Exists(manifestProps.GroupID, manifestProps.ArtifactID); ok {
 			// If groupId and artifactId are valid, they will be returned.
-			return append(libs, manifestProps.Library()), nil, nil
+			return append(libs, manifestProps.Library(fileName)), nil, nil
+		}
+	}
+
+	mVer, err := m.determineVersion()
+	if err == nil {
+		if fileName == origFileName {
+			lib := types.Library{
+				Name:     fmt.Sprintf("ORCA:%s", origFileName),
+				Version:  mVer,
+				FileName: fileName,
+			}
+			libs = append(libs, lib)
 		}
 	}
 
 	// If groupId and artifactId are not found, call Maven Central's search API with SHA-1 digest.
 	props, err := p.searchBySHA1(r, filePath)
 	if err == nil {
-		return append(libs, props.Library()), nil, nil
+		return append(libs, props.Library(fileName)), nil, nil
 	} else if !errors.Is(err, ArtifactNotFoundErr) {
 		return nil, nil, xerrors.Errorf("failed to search by SHA1: %w", err)
 	}
@@ -139,7 +151,7 @@ func (p *Parser) parseArtifact(filePath string, size int64, r xio.ReadSeekerAt) 
 	if err == nil {
 		log.Logger.Debugw("POM was determined in a heuristic way", zap.String("file", fileName),
 			zap.String("artifact", fileProps.String()))
-		libs = append(libs, fileProps.Library())
+		libs = append(libs, fileProps.Library(fileName))
 	} else if !errors.Is(err, ArtifactNotFoundErr) {
 		return nil, nil, xerrors.Errorf("failed to search by artifact id: %w", err)
 	}
@@ -147,7 +159,7 @@ func (p *Parser) parseArtifact(filePath string, size int64, r xio.ReadSeekerAt) 
 	return libs, nil, nil
 }
 
-func (p *Parser) traverseZip(filePath string, size int64, r xio.ReadSeekerAt, fileProps Properties) (
+func (p *Parser) traverseZip(filePath string, fileName string, origFileName string, size int64, r xio.ReadSeekerAt, fileProps Properties) (
 	[]types.Library, manifest, bool, error) {
 	var libs []types.Library
 	var m manifest
@@ -167,7 +179,7 @@ func (p *Parser) traverseZip(filePath string, size int64, r xio.ReadSeekerAt, fi
 			}
 			// Validation of props to avoid getting libs with empty Name/Version
 			if props.Valid() {
-				libs = append(libs, props.Library())
+				libs = append(libs, props.Library(fileName))
 
 				// Check if the pom.properties is for the original JAR/WAR/EAR
 				if fileProps.ArtifactID == props.ArtifactID && fileProps.Version == props.Version {
@@ -180,7 +192,7 @@ func (p *Parser) traverseZip(filePath string, size int64, r xio.ReadSeekerAt, fi
 				return nil, manifest{}, false, xerrors.Errorf("failed to parse MANIFEST.MF: %w", err)
 			}
 		case isArtifact(fileInJar.Name):
-			innerLibs, _, err := p.parseInnerJar(fileInJar, filePath) // TODO process inner deps
+			innerLibs, _, err := p.parseInnerJar(fileInJar, origFileName, filePath) // TODO process inner deps
 			if err != nil {
 				log.Logger.Debugf("Failed to parse %s: %s", fileInJar.Name, err)
 				continue
@@ -191,7 +203,7 @@ func (p *Parser) traverseZip(filePath string, size int64, r xio.ReadSeekerAt, fi
 	return libs, m, foundPomProps, nil
 }
 
-func (p *Parser) parseInnerJar(zf *zip.File, rootPath string) ([]types.Library, []types.Dependency, error) {
+func (p *Parser) parseInnerJar(zf *zip.File, origFileName string, rootPath string) ([]types.Library, []types.Dependency, error) {
 	fr, err := zf.Open()
 	if err != nil {
 		return nil, nil, xerrors.Errorf("unable to open %s: %w", zf.Name, err)
@@ -220,7 +232,7 @@ func (p *Parser) parseInnerJar(zf *zip.File, rootPath string) ([]types.Library, 
 	}
 
 	// Parse jar/war/ear recursively
-	innerLibs, innerDeps, err := p.parseArtifact(fullPath, int64(zf.UncompressedSize64), f)
+	innerLibs, innerDeps, err := p.parseArtifact(fullPath, origFileName, int64(zf.UncompressedSize64), f)
 	if err != nil {
 		return nil, nil, xerrors.Errorf("failed to parse %s: %w", zf.Name, err)
 	}

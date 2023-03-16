@@ -59,7 +59,7 @@ func (h systemFileFilteringPostHandler) Handle(_ context.Context, result *analyz
 		systemFile := strings.TrimPrefix(file, "/")
 		// We should check the root filepath ("/") and ignore it.
 		// Otherwise libraries with an empty filePath will be removed.
-		if systemFile != "" {
+		if systemFile != "" && !strings.HasSuffix(systemFile, ".jar") {
 			systemFiles = append(systemFiles, systemFile)
 		}
 	}

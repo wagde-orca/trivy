@@ -14,6 +14,7 @@ type Library struct {
 	ExternalReferences []ExternalRef `json:",omitempty"`
 	Locations          Locations     `json:",omitempty"`
 	FilePath           string        `json:",omitempty"` // Required to show nested jars
+	FileName           string        `json:",omitempty"` // if this is the same as FilePath remove it
 }
 
 type Libraries []Library
