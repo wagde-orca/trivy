@@ -59,6 +59,7 @@ func ToAnalysisResult(fileType, filePath, libFilePath string, libs []godeptypes.
 			Licenses:  licenses,
 			DependsOn: deps[lib.ID],
 			Locations: locs,
+			SrcName:   lib.FileName,
 		})
 	}
 	apps := []types.Application{{
