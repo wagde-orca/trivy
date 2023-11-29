@@ -2,16 +2,23 @@ package operation
 
 import (
 	"context"
+	"crypto/tls"
 	"os"
 	"strings"
 
+	"github.com/aquasecurity/trivy/pkg/policy"
+
+	"github.com/samber/lo"
+
+	"github.com/aquasecurity/trivy/pkg/flag"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/google/wire"
-	"github.com/spf13/afero"
 	"golang.org/x/xerrors"
 
-	"github.com/aquasecurity/fanal/cache"
+	"github.com/aquasecurity/trivy-db/pkg/metadata"
 	"github.com/aquasecurity/trivy/pkg/db"
+	"github.com/aquasecurity/trivy/pkg/fanal/cache"
 	"github.com/aquasecurity/trivy/pkg/log"
 	"github.com/aquasecurity/trivy/pkg/utils"
 )
@@ -29,16 +36,36 @@ type Cache struct {
 }
 
 // NewCache is the factory method for Cache
-func NewCache(backend string) (Cache, error) {
-	if strings.HasPrefix(backend, "redis://") {
-		log.Logger.Infof("Redis cache: %s", backend)
-		options, err := redis.ParseURL(backend)
+func NewCache(c flag.CacheOptions) (Cache, error) {
+	if strings.HasPrefix(c.CacheBackend, "redis://") {
+		log.Logger.Infof("Redis cache: %s", c.CacheBackendMasked())
+		options, err := redis.ParseURL(c.CacheBackend)
 		if err != nil {
 			return Cache{}, err
 		}
-		redisCache := cache.NewRedisCache(options)
+
+		if !lo.IsEmpty(c.RedisOptions) {
+			caCert, cert, err := utils.GetTLSConfig(c.RedisCACert, c.RedisCert, c.RedisKey)
+			if err != nil {
+				return Cache{}, err
+			}
+
+			options.TLSConfig = &tls.Config{
+				RootCAs:      caCert,
+				Certificates: []tls.Certificate{cert},
+				MinVersion:   tls.VersionTLS12,
+			}
+		}
+
+		redisCache := cache.NewRedisCache(options, c.CacheTTL)
 		return Cache{Cache: redisCache}, nil
 	}
+
+	if c.CacheTTL != 0 {
+		log.Logger.Warn("'--cache-ttl' is only available with Redis cache backend")
+	}
+
+	// standalone mode
 	fsCache, err := cache.NewFSCache(utils.CacheDir())
 	if err != nil {
 		return Cache{}, xerrors.Errorf("unable to initialize fs cache: %w", err)
@@ -76,22 +103,20 @@ func (c Cache) ClearArtifacts() error {
 }
 
 // DownloadDB downloads the DB
-func DownloadDB(appVersion, cacheDir string, quiet, light, skipUpdate bool) error {
-	client := initializeDBClient(cacheDir, quiet)
+func DownloadDB(appVersion, cacheDir, dbRepository string, quiet, insecure, skipUpdate bool) error {
+	client := db.NewClient(cacheDir, quiet, insecure, db.WithDBRepository(dbRepository))
 	ctx := context.Background()
-	needsUpdate, err := client.NeedsUpdate(appVersion, light, skipUpdate)
+	needsUpdate, err := client.NeedsUpdate(appVersion, skipUpdate)
 	if err != nil {
 		return xerrors.Errorf("database error: %w", err)
 	}
 
 	if needsUpdate {
 		log.Logger.Info("Need to update DB")
+		log.Logger.Infof("DB Repository: %s", dbRepository)
 		log.Logger.Info("Downloading DB...")
-		if err = client.Download(ctx, cacheDir, light); err != nil {
+		if err = client.Download(ctx, cacheDir); err != nil {
 			return xerrors.Errorf("failed to download vulnerability DB: %w", err)
-		}
-		if err = client.UpdateMetadata(cacheDir); err != nil {
-			return xerrors.Errorf("unable to update database metadata: %w", err)
 		}
 	}
 
@@ -103,12 +128,47 @@ func DownloadDB(appVersion, cacheDir string, quiet, light, skipUpdate bool) erro
 }
 
 func showDBInfo(cacheDir string) error {
-	m := db.NewMetadata(afero.NewOsFs(), cacheDir)
-	metadata, err := m.Get()
+	m := metadata.NewClient(cacheDir)
+	meta, err := m.Get()
 	if err != nil {
 		return xerrors.Errorf("something wrong with DB: %w", err)
 	}
-	log.Logger.Debugf("DB Schema: %d, Type: %d, UpdatedAt: %s, NextUpdate: %s, DownloadedAt: %s",
-		metadata.Version, metadata.Type, metadata.UpdatedAt, metadata.NextUpdate, metadata.DownloadedAt)
+	log.Logger.Debugf("DB Schema: %d, UpdatedAt: %s, NextUpdate: %s, DownloadedAt: %s",
+		meta.Version, meta.UpdatedAt, meta.NextUpdate, meta.DownloadedAt)
 	return nil
+}
+
+// InitBuiltinPolicies downloads the built-in policies and loads them
+func InitBuiltinPolicies(ctx context.Context, cacheDir string, quiet, skipUpdate bool) ([]string, error) {
+	client, err := policy.NewClient(cacheDir, quiet)
+	if err != nil {
+		return nil, xerrors.Errorf("policy client error: %w", err)
+	}
+
+	needsUpdate := false
+	if !skipUpdate {
+		needsUpdate, err = client.NeedsUpdate()
+		if err != nil {
+			return nil, xerrors.Errorf("unable to check if built-in policies need to be updated: %w", err)
+		}
+	}
+
+	if needsUpdate {
+		log.Logger.Info("Need to update the built-in policies")
+		log.Logger.Info("Downloading the built-in policies...")
+		if err = client.DownloadBuiltinPolicies(ctx); err != nil {
+			return nil, xerrors.Errorf("failed to download built-in policies: %w", err)
+		}
+	}
+
+	policyPaths, err := client.LoadBuiltinPolicies()
+	if err != nil {
+		if skipUpdate {
+			msg := "No downloadable policies were loaded as --skip-policy-update is enabled"
+			log.Logger.Info(msg)
+			return nil, xerrors.Errorf(msg)
+		}
+		return nil, xerrors.Errorf("policy load error: %w", err)
+	}
+	return policyPaths, nil
 }

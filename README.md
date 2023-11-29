@@ -1,133 +1,130 @@
-<img src="docs/imgs/logo.png" width="150">
-
+<div align="center">
+<img src="docs/imgs/logo.png" width="200">
 
 [![GitHub Release][release-img]][release]
-[![Go Report Card](https://goreportcard.com/badge/github.com/aquasecurity/trivy)](https://goreportcard.com/report/github.com/aquasecurity/trivy)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)][license]
-[![GitHub All Releases][github-all-releases-img]][release]
+[![Test][test-img]][test]
+[![Go Report Card][go-report-img]][go-report]
+[![License: Apache-2.0][license-img]][license]
+[![GitHub Downloads][github-downloads-img]][release]
 ![Docker Pulls][docker-pulls]
 
-[release]: https://github.com/aquasecurity/trivy/releases
-[release-img]: https://img.shields.io/github/release/aquasecurity/trivy.svg?logo=github
-[github-all-releases-img]: https://img.shields.io/github/downloads/aquasecurity/trivy/total?logo=github
-[docker-pulls]: https://img.shields.io/docker/pulls/aquasec/trivy?logo=docker&label=docker%20pulls%20%2F%20trivy
-[license]: https://github.com/aquasecurity/trivy/blob/main/LICENSE
+[📖 Documentation][docs]
+</div>
 
+Trivy ([pronunciation][pronunciation]) is a comprehensive and versatile security scanner.
+Trivy has *scanners* that look for security issues, and *targets* where it can find those issues.
 
-A Simple and Comprehensive Vulnerability Scanner for Containers and other Artifacts, Suitable for CI.
+Targets (what Trivy can scan):
 
-# Abstract
-`Trivy` (`tri` pronounced like **tri**gger, `vy` pronounced like en**vy**) is a simple and comprehensive vulnerability scanner for containers and other artifacts.
-A software vulnerability is a glitch, flaw, or weakness present in the software or in an Operating System.
-`Trivy` detects vulnerabilities of OS packages (Alpine, RHEL, CentOS, etc.) and application dependencies (Bundler, Composer, npm, yarn, etc.).
-`Trivy` is easy to use. Just install the binary and you're ready to scan. All you need to do for scanning is to specify a target such as an image name of the container.
+- Container Image
+- Filesystem
+- Git Repository (remote)
+- Virtual Machine Image
+- Kubernetes
+- AWS
 
-<img src="docs/imgs/overview.png" width="700">
+Scanners (what Trivy can find there):
 
-Trivy can be run in two different modes:
+- OS packages and software dependencies in use (SBOM)
+- Known vulnerabilities (CVEs)
+- IaC issues and misconfigurations
+- Sensitive information and secrets
+- Software licenses
 
-- [Standalone](https://aquasecurity.github.io/trivy/latest/modes/standalone/)
-- [Client/Server](https://aquasecurity.github.io/trivy/latest/modes/client-server/)
+To learn more, go to the [Trivy homepage][homepage] for feature highlights, or to the [Documentation site][docs] for detailed information.
 
-Trivy can scan three different artifacts:
+## Quick Start
 
-- [Container Images](https://aquasecurity.github.io/trivy/latest/scanning/image/)
-- [Filesystem](https://aquasecurity.github.io/trivy/latest/scanning/filesystem/)
-- [Git Repositories](https://aquasecurity.github.io/trivy/latest/scanning/git-repository/)
+### Get Trivy
 
-<img src="docs/imgs/usage.gif" width="700">
-<img src="docs/imgs/usage1.png" width="600">
-<img src="docs/imgs/usage2.png" width="600">
+Trivy is available in most common distribution channels. The full list of installation options is available in the [Installation] page. Here are a few popular examples:
 
-It is considered to be used in CI. Before pushing to a container registry or deploying your application, you can scan your local container image and other artifacts easily.
-See [here](https://aquasecurity.github.io/trivy/latest/integrations/) for details.
+- `brew install trivy`
+- `docker run aquasec/trivy`
+- Download binary from <https://github.com/aquasecurity/trivy/releases/latest/>
+- See [Installation] for more
 
-# Features
+Trivy is integrated with many popular platforms and applications. The complete list of integrations is available in the [Ecosystem] page. Here are a few popular examples:
 
-- Detect comprehensive vulnerabilities
-  - OS packages (Alpine, **Red Hat Universal Base Image**, Red Hat Enterprise Linux, CentOS, Oracle Linux, Debian, Ubuntu, Amazon Linux, openSUSE Leap, SUSE Enterprise Linux, Photon OS and Distroless)
-  - **Application dependencies** (Bundler, Composer, Pipenv, Poetry, npm, yarn, Cargo, NuGet, Maven, and Go)
-- Simple
-  - Specify only an image name or artifact name
-  - See [Quick Start](#quick-start) and [Examples](#examples)
-- Fast
-  - The first scan will finish within 10 seconds (depending on your network). Consequent scans will finish in single seconds.
-  - Unlike other scanners that take long to fetch vulnerability information (~10 minutes) on the first run, and encourage you to maintain a durable vulnerability database, Trivy is stateless and requires no maintenance or preparation.
-- Easy installation
-  - `apt-get install`, `yum install` and `brew install` is possible (See [Installation](#installation))
-  - **No pre-requisites** such as installation of DB, libraries, etc.
-- High accuracy
-  - **Especially Alpine Linux and RHEL/CentOS**
-  - Other OSes are also high
-- DevSecOps
-  - **Suitable for CI** such as Travis CI, CircleCI, Jenkins, GitLab CI, etc.
-  - See [CI Example](#continuous-integration-ci)
-- Support multiple formats
-  - container image
-    - A local image in Docker Engine which is running as a daemon
-    - A local image in Podman (>=2.0) which is exposing a socket
-    - A remote image in Docker Registry such as Docker Hub, ECR, GCR and ACR
-    - A tar archive stored in the `docker save` / `podman save` formatted file
-    - An image directory compliant with [OCI Image Format](https://github.com/opencontainers/image-spec)
-  - local filesystem
-  - remote git repository
+- [GitHub Actions](https://github.com/aquasecurity/trivy-action)
+- [Kubernetes operator](https://github.com/aquasecurity/trivy-operator)
+- [VS Code plugin](https://github.com/aquasecurity/trivy-vscode-extension)
+- See [Ecosystem] for more
 
-Please see [LICENSE][license] for Trivy licensing information. Note that Trivy uses vulnerability information from a variety of sources, some of which are licensed for non-commercial use only.
+### General usage
 
-# Documentation
-The official documentation, which provides detailed installation, configuration, and quick start guides, is available at https://aquasecurity.github.io/trivy/.
-
-# Installation
-See [here](https://aquasecurity.github.io/trivy/latest/installation/)
-
-
-# Quick Start
-
-Simply specify an image name (and a tag).
-
-```
-$ trivy image [YOUR_IMAGE_NAME]
+```bash
+trivy <target> [--scanners <scanner1,scanner2>] <subject>
 ```
 
-For example:
+Examples:
 
-```
-$ trivy image python:3.4-alpine
+```bash
+trivy image python:3.4-alpine
 ```
 
 <details>
 <summary>Result</summary>
 
-```
-2019-05-16T01:20:43.180+0900    INFO    Updating vulnerability database...
-2019-05-16T01:20:53.029+0900    INFO    Detecting Alpine vulnerabilities...
-
-python:3.4-alpine3.9 (alpine 3.9.2)
-===================================
-Total: 1 (UNKNOWN: 0, LOW: 0, MEDIUM: 1, HIGH: 0, CRITICAL: 0)
-
-+---------+------------------+----------+-------------------+---------------+--------------------------------+
-| LIBRARY | VULNERABILITY ID | SEVERITY | INSTALLED VERSION | FIXED VERSION |             TITLE              |
-+---------+------------------+----------+-------------------+---------------+--------------------------------+
-| openssl | CVE-2019-1543    | MEDIUM   | 1.1.1a-r1         | 1.1.1b-r1     | openssl: ChaCha20-Poly1305     |
-|         |                  |          |                   |               | with long nonces               |
-+---------+------------------+----------+-------------------+---------------+--------------------------------+
-```
+https://user-images.githubusercontent.com/1161307/171013513-95f18734-233d-45d3-aaf5-d6aec687db0e.mov
 
 </details>
 
-# Examples
-See [here](https://aquasecurity.github.io/trivy/latest/examples/filter/)
+```bash
+trivy fs --scanners vuln,secret,config myproject/
+```
 
-# Continuous Integration (CI)
-See [here](https://aquasecurity.github.io/trivy/latest/integrations/)
+<details>
+<summary>Result</summary>
 
-# Vulnerability Detection
-See [here](https://aquasecurity.github.io/trivy/latest/vuln-detection/)
+https://user-images.githubusercontent.com/1161307/171013917-b1f37810-f434-465c-b01a-22de036bd9b3.mov
 
-# Usage
-See [here](https://aquasecurity.github.io/trivy/latest/usage/)
+</details>
 
-# Author
+```bash
+trivy k8s --report summary cluster
+```
 
-[Teppei Fukuda](https://github.com/knqyf263) (knqyf263)
+<details>
+<summary>Result</summary>
+
+![k8s summary](docs/imgs/trivy-k8s.png)
+
+</details>
+
+## FAQ
+
+### How to pronounce the name "Trivy"?
+
+`tri` is pronounced like **tri**gger, `vy` is pronounced like en**vy**.
+
+---
+
+Trivy is an [Aqua Security][aquasec] open source project.  
+Learn about our open source work and portfolio [here][oss].  
+Contact us about any matter by opening a GitHub Discussion [here][discussions]
+
+[test]: https://github.com/aquasecurity/trivy/actions/workflows/test.yaml
+[test-img]: https://github.com/aquasecurity/trivy/actions/workflows/test.yaml/badge.svg
+[go-report]: https://goreportcard.com/report/github.com/aquasecurity/trivy
+[go-report-img]: https://goreportcard.com/badge/github.com/aquasecurity/trivy
+[release]: https://github.com/aquasecurity/trivy/releases
+[release-img]: https://img.shields.io/github/release/aquasecurity/trivy.svg?logo=github
+[github-downloads-img]: https://img.shields.io/github/downloads/aquasecurity/trivy/total?logo=github
+[docker-pulls]: https://img.shields.io/docker/pulls/aquasec/trivy?logo=docker&label=docker%20pulls%20%2F%20trivy
+[license]: https://github.com/aquasecurity/trivy/blob/main/LICENSE
+[license-img]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
+[homepage]: https://trivy.dev
+[docs]: https://aquasecurity.github.io/trivy
+[pronunciation]: #how-to-pronounce-the-name-trivy
+
+[Installation]:https://aquasecurity.github.io/trivy/latest/getting-started/installation/
+[Ecosystem]: https://aquasecurity.github.io/trivy/latest/ecosystem/
+
+[alpine]: https://ariadne.space/2021/06/08/the-vulnerability-remediation-lifecycle-of-alpine-containers/
+[rego]: https://www.openpolicyagent.org/docs/latest/#rego
+[sigstore]: https://www.sigstore.dev/
+
+[aquasec]: https://aquasec.com
+[oss]: https://www.aquasec.com/products/open-source-projects/
+[discussions]: https://github.com/aquasecurity/trivy/discussions

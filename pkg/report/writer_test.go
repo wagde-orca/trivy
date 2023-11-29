@@ -5,19 +5,18 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/aquasecurity/trivy/pkg/report"
 	"github.com/aquasecurity/trivy/pkg/types"
 )
 
 func TestResults_Failed(t *testing.T) {
 	tests := []struct {
 		name    string
-		results report.Results
+		results types.Results
 		want    bool
 	}{
 		{
 			name: "no vulnerabilities and misconfigurations",
-			results: report.Results{
+			results: types.Results{
 				{
 					Target: "test",
 					Type:   "test",
@@ -27,7 +26,7 @@ func TestResults_Failed(t *testing.T) {
 		},
 		{
 			name: "vulnerabilities found",
-			results: report.Results{
+			results: types.Results{
 				{
 					Target: "test",
 					Type:   "test",
@@ -40,6 +39,40 @@ func TestResults_Failed(t *testing.T) {
 				},
 			},
 			want: true,
+		},
+		{
+			name: "failed misconfigurations",
+			results: types.Results{
+				{
+					Target: "test",
+					Type:   "test",
+					Misconfigurations: []types.DetectedMisconfiguration{
+						{
+							Type:   "Docker Security Check",
+							ID:     "ID-001",
+							Status: types.StatusFailure,
+						},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "passed misconfigurations",
+			results: types.Results{
+				{
+					Target: "test",
+					Type:   "test",
+					Misconfigurations: []types.DetectedMisconfiguration{
+						{
+							Type:   "Docker Security Check",
+							ID:     "ID-001",
+							Status: types.StatusPassed,
+						},
+					},
+				},
+			},
+			want: false,
 		},
 	}
 	for _, tt := range tests {

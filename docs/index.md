@@ -1,64 +1,136 @@
-# Welcome to {{ config.site_name }} 
+---
+hide:
+- toc
+---
+![logo](imgs/logo.png){ align=right }
 
-A Simple and Comprehensive Vulnerability Scanner for Containers and other Artifacts, Suitable for CI.
+# Trivy Documentation
 
-# Abstract
-`Trivy` (`tri` pronounced like **tri**gger, `vy` pronounced like en**vy**) is a simple and comprehensive vulnerability scanner for containers and other artifacts.
-A software vulnerability is a glitch, flaw, or weakness present in the software or in an Operating System.
-`Trivy` detects vulnerabilities of OS packages (Alpine, RHEL, CentOS, etc.) and application dependencies (Bundler, Composer, npm, yarn, etc.).
-`Trivy` is easy to use. Just install the binary and you're ready to scan. All you need to do for scanning is to specify a target such as an image name of the container.
+👋 Welcome to Trivy Documentation! To help you get around, please notice the different sections at the top global menu:
 
-<img src="imgs/overview.png" width="700">
+- You are currently in the [Getting Started] section where you can find general information and help with first steps.
+- In the [Tutorials] section you can find step-by-step guides that help you accomplish specific tasks.
+- In the [Docs] section you can find the complete reference documentation for all of the different features and settings that Trivy has to offer.
+- In the [Ecosystem] section you can find how Trivy works together with other tools and applications that you might already use.
+- In the [Contributing] section you can find technical developer documentation and contribution guidelines.
 
-Trivy can be run in two different modes:
+# About Trivy
 
-- [Standalone](./modes/standalone.md)
-- [Client/Server](./modes/client-server.md)
+Trivy ([pronunciation][pronunciation]) is a comprehensive and versatile security scanner. Trivy has *scanners* that look for security issues, and *targets* where it can find those issues.
 
-Trivy can scan three different artifacts:
+Targets (what Trivy can scan):
 
-- [Container Images](./scanning/image.md)
-- [Filesystem](./scanning/filesystem.md)
-- [Git Repositories](./scanning/git-repository.md)
+- Container Image
+- Filesystem
+- Git Repository (remote)
+- Virtual Machine Image
+- Kubernetes
+- AWS
 
-<img src="imgs/usage.gif" width="700">
-<img src="imgs/usage1.png" width="600">
-<img src="imgs/usage2.png" width="600">
+Scanners (what Trivy can find there):
 
-It is considered to be used in CI. Before pushing to a container registry or deploying your application, you can scan your local container image and other artifacts easily.
-See [here](./integrations/index.md) for details.
+- OS packages and software dependencies in use (SBOM)
+- Known vulnerabilities (CVEs)
+- IaC issues and misconfigurations
+- Sensitive information and secrets
+- Software licenses
 
-## Features
+To learn more, go to the [Trivy homepage][homepage] for feature highlights, or to the [Documentation site][Docs] for detailed information.
 
-- Detect comprehensive vulnerabilities
-    - OS packages (Alpine, **Red Hat Universal Base Image**, Red Hat Enterprise Linux, CentOS, Oracle Linux, Debian, Ubuntu, Amazon Linux, openSUSE Leap, SUSE Enterprise Linux, Photon OS and Distroless)
-    - **Application dependencies** (Bundler, Composer, Pipenv, Poetry, npm, yarn, Cargo, NuGet, Maven, and Go)
-- Simple
-    - Specify only an image name or artifact name
-    - See [Quick Start](quickstart.md) and [Examples](examples/index.md)
-- Fast
-    - The first scan will finish within 10 seconds (depending on your network). Consequent scans will finish in single seconds.
-    - Unlike other scanners that take long to fetch vulnerability information (~10 minutes) on the first run, and encourage you to maintain a durable vulnerability database, Trivy is stateless and requires no maintenance or preparation.
-- Easy installation
-    - `apt-get install`, `yum install` and `brew install` is possible (See [Installation](installation.md))
-    - **No pre-requisites** such as installation of DB, libraries, etc.
-- High accuracy
-    - **Especially Alpine Linux and RHEL/CentOS**
-    - Other OSes are also high
-- DevSecOps
-    - **Suitable for CI** such as Travis CI, CircleCI, Jenkins, GitLab CI, etc.
-    - See [CI Example](integrations/index.md)
-- Support multiple formats
-    - container image
-        - A local image in Docker Engine which is running as a daemon
-        - A local image in Podman (>=2.0) which is exposing a socket
-        - A remote image in Docker Registry such as Docker Hub, ECR, GCR and ACR
-        - A tar archive stored in the `docker save` / `podman save` formatted file
-        - An image directory compliant with [OCI Image Format](https://github.com/opencontainers/image-spec)
-    - local filesystem
-    - remote git repository
+## Quick Start
 
-Please see [LICENSE](https://github.com/aquasecurity/trivy/blob/main/LICENSE) for Trivy licensing information.
+### Get Trivy
 
-!!! note
-    Trivy uses vulnerability information from a variety of sources, some of which are licensed for non-commercial use only.
+Trivy is available in most common distribution channels. The complete list of installation options is available in the [Installation] page. Here are a few popular examples:
+
+- `brew install trivy`
+- `docker run aquasec/trivy`
+- Download binary from <https://github.com/aquasecurity/trivy/releases/latest/>
+- See [Installation] for more
+
+Trivy is integrated with many popular platforms and applications. The complete list of integrations is available in the [Ecosystem] page. Here are a few popular options examples:
+
+- [GitHub Actions](https://github.com/aquasecurity/trivy-action)
+- [Kubernetes operator](https://github.com/aquasecurity/trivy-operator)
+- [VS Code plugin](https://github.com/aquasecurity/trivy-vscode-extension)
+- See [Ecosystem] for more
+
+### General usage
+
+```bash
+trivy <target> [--scanners <scanner1,scanner2>] <subject>
+```
+
+Examples:
+
+```bash
+trivy image python:3.4-alpine
+```
+
+<details>
+<summary>Result</summary>
+
+<figure style="text-align: center">
+  <video width="1000" autoplay muted controls loop>
+    <source src="https://user-images.githubusercontent.com/1161307/171013513-95f18734-233d-45d3-aaf5-d6aec687db0e.mov" type="video/mp4" />
+  </video>
+  <figcaption>Demo: Vulnerability Detection</figcaption>
+</figure>
+
+</details>
+
+```bash
+trivy fs --scanners vuln,secret,config myproject/
+```
+
+<details>
+<summary>Result</summary>
+
+<figure style="text-align: center">
+  <video width="1000" autoplay muted controls loop>
+    <source src="https://user-images.githubusercontent.com/1161307/171013917-b1f37810-f434-465c-b01a-22de036bd9b3.mov" type="video/mp4" />
+  </video>
+  <figcaption>Demo: Misconfiguration Detection</figcaption>
+</figure>
+
+</details>
+
+```bash
+trivy k8s --report summary cluster
+```
+
+<details>
+<summary>Result</summary>
+
+<figure style="text-align: center">
+  <img src="imgs/secret-demo.gif" width="1000">
+  <figcaption>Demo: Secret Detection</figcaption>
+</figure>
+
+</details>
+
+## FAQ
+
+### How to pronounce the name "Trivy"?
+
+`tri` is pronounced like **tri**gger, `vy` is pronounced like en**vy**.
+
+---
+
+Trivy is an [Aqua Security][aquasec] open source project.  
+Learn about our open source work and portfolio [here][oss].  
+Contact us about any matter by opening a GitHub Discussion [here][discussions]
+
+[Ecosystem]: ./ecosystem/index.md
+[Installation]: getting-started/installation.md
+[pronunciation]: #how-to-pronounce-the-name-trivy
+
+[aquasec]: https://aquasec.com
+[oss]: https://www.aquasec.com/products/open-source-projects/
+[discussions]: https://github.com/aquasecurity/trivy/discussions
+
+[homepage]: https://trivy.dev
+[Tutorials]: ./tutorials/overview
+[Docs]: ./docs
+[Getting Started]: ./
+[Contributing]: ./community/contribute/issue
